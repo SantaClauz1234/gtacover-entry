@@ -217,6 +217,16 @@ input[type="checkbox"] { accent-color: var(--pink); width: 16px; height: 16px; }
 #panel-chips, #tag-presets { display: flex; flex-wrap: wrap; gap: 6px; }
 #panel-chips button, #tag-presets button { padding: 5px 9px; font-size: 12px; border-radius: 999px; }
 
+#history-buttons { display: flex; gap: 8px; }
+#history-buttons button:disabled { opacity: 0.38; cursor: default; box-shadow: none; }
+
+#formula-list { display: flex; flex-direction: column; gap: 8px; }
+#formula-list button { text-align: left; }
+#formula-note { margin: 0; color: var(--muted); font-size: 12.5px; }
+
+#caption-templates { display: flex; flex-wrap: wrap; gap: 6px; }
+#caption-templates button { padding: 5px 9px; font-size: 12px; border-radius: 999px; }
+
 #export-note { margin: 0; color: var(--muted); font-size: 12.5px; }
 #export-all { width: 100%; }
 #export-png { width: 100%; }

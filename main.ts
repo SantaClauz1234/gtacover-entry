@@ -14,7 +14,7 @@
 // time-dependent, random or machine-specific into the output: only the two copied trees
 // and the dossier the library derives from them.
 
-import { cpSync, existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-app.ts';
@@ -34,8 +34,24 @@ function countFilesIn(folder: string): number {
 }
 
 /** The one-line summary a human sees when they hand the entry in by hand. */
-function describeEntry(appFileCount: number, screenshotCount: number): string {
-  return `Bayshore Heat Cover Studio: ${appFileCount} app files, ${screenshotCount} screenshots, dossier written.`;
+function describeEntry(appFileCount: number, screenshotCount: number, dossierBytes: number): string {
+  return `Bayshore Heat Cover Studio: ${appFileCount} app files, ${screenshotCount} screenshots, dossier written (${dossierBytes} bytes).`;
+}
+
+/**
+ * A last sanity pass over what was just written: the dossier must be readable JSON
+ * whose first screenshot is the cover, because a dossier that does not parse here
+ * would only fail later, inside the sealed gate, where the fix costs a submission.
+ * This reads the output back; it never changes a byte of it, so the grader's two
+ * runs still produce identical files.
+ */
+function verifyWrittenDossier(outputFolder: string): number {
+  const dossierPath = join(outputFolder, 'dossier.json');
+  const parsed = JSON.parse(readFileSync(dossierPath, 'utf8')) as { images?: unknown; cover?: unknown };
+  if (!Array.isArray(parsed.images) || parsed.images.length === 0 || parsed.cover !== 0) {
+    throw new Error('dossier.json carries no cover image: the first screenshot is the cover the judge sees');
+  }
+  return statSync(dossierPath).size;
 }
 
 mkdirSync(outputDir, { recursive: true });
@@ -62,4 +78,10 @@ writeFileSync(
   }),
 );
 
-console.log(describeEntry(countFilesIn(join(outputDir, 'app')), countFilesIn(join(outputDir, 'screenshots'))));
+console.log(
+  describeEntry(
+    countFilesIn(join(outputDir, 'app')),
+    countFilesIn(join(outputDir, 'screenshots')),
+    verifyWrittenDossier(outputDir),
+  ),
+);

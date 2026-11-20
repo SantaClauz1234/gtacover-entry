@@ -20,6 +20,10 @@
     <li><strong>2</strong> Style the cover</li>
     <li><strong>3</strong> Export PNG</li>
   </ol>
+  <div id="history-buttons">
+    <button id="undo-button" type="button">↩ Undo</button>
+    <button id="redo-button" type="button">↪ Redo</button>
+  </div>
   <button id="export-all-top" type="button">Export all 3 sizes</button>
 </header>
 
@@ -42,8 +46,15 @@
       </div>
     </section>
 
+    <section id="formula-card" class="card">
+      <h2>Poster formulas — one click</h2>
+      <div id="formula-list"></div>
+      <p id="formula-note">A whole recipe in one click: layout, grade, finish and lettering. Then swap in your photos.</p>
+    </section>
+
     <section id="caption-card" class="card">
       <h2>Caption</h2>
+      <div id="caption-templates"></div>
       <label>Poster title <input id="title-input" type="text" maxlength="34" value="Bayshore Heat"></label>
       <label>Script subtitle <input id="subtitle-input" type="text" maxlength="48" value="welcome to coral bay"></label>
       <label>Billing block <input id="billing-input" type="text" maxlength="150" value="Bayshore Heat Pictures presents a Coral Bay story starring you and yours — music by the tide, directed by the golden hour"></label>
@@ -112,6 +123,12 @@
       <label class="check"><input id="popout-toggle" type="checkbox" checked> Pop-out hero (breaks its frame)</label>
       <label class="check"><input id="seal-toggle" type="checkbox" checked> Original seal</label>
       <label class="check"><input id="billing-toggle" type="checkbox" checked> Billing block</label>
+      <label class="check"><input id="halftone-toggle" type="checkbox"> Halftone title band</label>
+      <label class="check"><input id="ribbon-toggle" type="checkbox" checked> Corner ribbon sticker</label>
+      <label class="check"><input id="palm-badge-toggle" type="checkbox"> Gold palm badge sticker</label>
+      <label class="check"><input id="heat-tag-toggle" type="checkbox" checked> Heat index tag sticker</label>
+      <label>Film grain <input id="grain-range" type="range" min="0" max="1" step="0.05" value="0.35"></label>
+      <label>Vignette <input id="vignette-range" type="range" min="0" max="1" step="0.05" value="0.45"></label>
     </section>
 
     <section id="export-card" class="card">

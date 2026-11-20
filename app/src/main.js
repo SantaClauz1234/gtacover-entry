@@ -6,6 +6,7 @@
 import { drawCoverArt, exportCoverPng } from './cover.js';
 import { PANEL_LAYOUTS, POSTER_SIZES, ROLE_TAG_PRESETS, freshPanelState, layoutById } from './panels.js';
 import { VICE_GRADES } from './grades.js';
+import { CAPTION_TEMPLATES, POSTER_FORMULAS } from './presets.js';
 import { runShotScene } from './shots.js';
 
 const canvas = document.getElementById('cover-canvas');
@@ -26,6 +27,8 @@ const state = {
   showBilling: true,
   grain: 0.35,
   vignette: 0.45,
+  halftoneBand: false,
+  stickers: { ribbon: true, palmBadge: false, heatTag: true },
   panels: [],
   selectedPanel: 0,
 };
@@ -74,6 +77,125 @@ function renderStudio() {
   drawCoverArt(canvas, state, photos);
   syncPanelInspector();
   markActiveButtons();
+  trackHistory();
+}
+
+// --- Undo / redo -------------------------------------------------------------
+// The whole studio state is plain JSON (photos live outside it, in the tray), so a
+// snapshot is one stringify. Every render whose state differs from the last snapshot
+// pushes the previous snapshot onto the undo stack; restoring sets a flag so the
+// restore itself is not recorded as a new edit.
+
+const undoStack = [];
+const redoStack = [];
+let lastSnapshot = '';
+let restoringSnapshot = false;
+
+function stateSnapshot() {
+  return JSON.stringify(state);
+}
+
+function trackHistory() {
+  const snapshot = stateSnapshot();
+  if (!lastSnapshot) {
+    lastSnapshot = snapshot;
+    return;
+  }
+  if (snapshot !== lastSnapshot && !restoringSnapshot) {
+    undoStack.push(lastSnapshot);
+    if (undoStack.length > 50) undoStack.shift();
+    redoStack.length = 0;
+    lastSnapshot = snapshot;
+  }
+  document.getElementById('undo-button').disabled = undoStack.length === 0;
+  document.getElementById('redo-button').disabled = redoStack.length === 0;
+}
+
+function restoreSnapshot(snapshot) {
+  restoringSnapshot = true;
+  const data = JSON.parse(snapshot);
+  state.panels = [];
+  Object.assign(state, data);
+  lastSnapshot = snapshot;
+  buildPanelChips();
+  syncAllControlsFromState();
+  renderStudio();
+  restoringSnapshot = false;
+  document.getElementById('undo-button').disabled = undoStack.length === 0;
+  document.getElementById('redo-button').disabled = redoStack.length === 0;
+}
+
+function undoLastEdit() {
+  if (undoStack.length === 0) return;
+  redoStack.push(stateSnapshot());
+  restoreSnapshot(undoStack.pop());
+  say('Undone — the cover is back one step.');
+}
+
+function redoLastEdit() {
+  if (redoStack.length === 0) return;
+  undoStack.push(stateSnapshot());
+  restoreSnapshot(redoStack.pop());
+  say('Redone.');
+}
+
+/** Pushes every state field back into its control, after an undo or a formula. */
+function syncAllControlsFromState() {
+  document.getElementById('title-input').value = state.title;
+  document.getElementById('subtitle-input').value = state.subtitle;
+  document.getElementById('billing-input').value = state.billing;
+  document.getElementById('lettering-select').value = state.lettering;
+  document.getElementById('stars-range').value = String(state.stars);
+  document.getElementById('finish-select').value = state.finish;
+  document.getElementById('size-select').value = state.sizeId;
+  document.getElementById('popout-toggle').checked = state.popOut;
+  document.getElementById('seal-toggle').checked = state.showSeal;
+  document.getElementById('billing-toggle').checked = state.showBilling;
+  document.getElementById('halftone-toggle').checked = state.halftoneBand;
+  document.getElementById('ribbon-toggle').checked = state.stickers.ribbon;
+  document.getElementById('palm-badge-toggle').checked = state.stickers.palmBadge;
+  document.getElementById('heat-tag-toggle').checked = state.stickers.heatTag;
+  document.getElementById('grain-range').value = String(state.grain);
+  document.getElementById('vignette-range').value = String(state.vignette);
+}
+
+/** Applies a one-click poster formula: layout, grade, finish and lettering at once. */
+function applyPosterFormula(formula) {
+  Object.assign(state, formula.recipe);
+  state.selectedPanel = 0;
+  ensurePanelStates();
+  buildPanelChips();
+  syncAllControlsFromState();
+  renderStudio();
+  say(`Poster formula applied: ${formula.name}. Swap in your photos and export.`);
+}
+
+/** Builds the poster-formula buttons and the caption-template chips. */
+function buildPresetControls() {
+  const list = document.getElementById('formula-list');
+  for (const formula of POSTER_FORMULAS) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = formula.name;
+    button.addEventListener('click', () => applyPosterFormula(formula));
+    list.appendChild(button);
+  }
+  const templates = document.getElementById('caption-templates');
+  for (const template of CAPTION_TEMPLATES) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.textContent = template.title;
+    chip.title = `${template.title} — “${template.subtitle}”`;
+    chip.addEventListener('click', () => {
+      state.title = template.title;
+      state.subtitle = template.subtitle;
+      document.getElementById('title-input').value = template.title;
+      document.getElementById('subtitle-input').value = template.subtitle;
+      renderStudio();
+      say(`Caption: ${template.title} — ${template.subtitle}.`);
+    });
+    templates.appendChild(chip);
+  }
 }
 
 /** Adds photos to the tray and, if the panels are still empty, spreads them out. */
@@ -425,6 +547,43 @@ function wireStudioControls() {
     state.showBilling = event.target.checked;
     renderStudio();
   });
+  document.getElementById('halftone-toggle').addEventListener('change', (event) => {
+    state.halftoneBand = event.target.checked;
+    renderStudio();
+  });
+  document.getElementById('ribbon-toggle').addEventListener('change', (event) => {
+    state.stickers.ribbon = event.target.checked;
+    renderStudio();
+  });
+  document.getElementById('palm-badge-toggle').addEventListener('change', (event) => {
+    state.stickers.palmBadge = event.target.checked;
+    renderStudio();
+  });
+  document.getElementById('heat-tag-toggle').addEventListener('change', (event) => {
+    state.stickers.heatTag = event.target.checked;
+    renderStudio();
+  });
+  document.getElementById('grain-range').addEventListener('input', (event) => {
+    state.grain = Number(event.target.value);
+    renderStudio();
+  });
+  document.getElementById('vignette-range').addEventListener('input', (event) => {
+    state.vignette = Number(event.target.value);
+    renderStudio();
+  });
+  document.getElementById('undo-button').addEventListener('click', undoLastEdit);
+  document.getElementById('redo-button').addEventListener('click', redoLastEdit);
+  document.addEventListener('keydown', (event) => {
+    const modifier = event.ctrlKey || event.metaKey;
+    if (!modifier) return;
+    if (event.key.toLowerCase() === 'z' && !event.shiftKey) {
+      event.preventDefault();
+      undoLastEdit();
+    } else if (event.key.toLowerCase() === 'y' || (event.key.toLowerCase() === 'z' && event.shiftKey)) {
+      event.preventDefault();
+      redoLastEdit();
+    }
+  });
   document.getElementById('size-select').addEventListener('change', (event) => {
     state.sizeId = event.target.value;
     renderStudio();
@@ -466,6 +625,7 @@ async function applyShotScene(scene) {
 }
 
 buildStudioControls();
+buildPresetControls();
 wireStudioControls();
 wireCanvasGestures();
 

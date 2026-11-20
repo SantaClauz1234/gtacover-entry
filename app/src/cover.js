@@ -508,6 +508,90 @@ function applyFinishingPass(ctx, state, grade, width, height) {
   ctx.restore();
 }
 
+/**
+ * The halftone title band: rows of printed dots that swell and fade down the top of
+ * the poster, the pulp-print texture the ace-tier house app wears behind its title.
+ */
+function drawHalftoneTitleBand(ctx, width, height) {
+  const bandHeight = height * 0.3;
+  const gap = Math.max(14, width * 0.016);
+  ctx.save();
+  for (let row = 0; row * gap < bandHeight; row += 1) {
+    const fade = 1 - (row * gap) / bandHeight;
+    for (let col = 0; col * gap < width + gap; col += 1) {
+      const radius = gap * 0.3 * fade;
+      if (radius < 0.6) continue;
+      ctx.beginPath();
+      ctx.arc(col * gap + (row % 2 ? gap / 2 : 0), row * gap + gap / 2, radius, 0, Math.PI * 2);
+      ctx.fillStyle = (col + row) % 3 === 0 ? `rgba(255, 215, 110, ${0.34 * fade})` : `rgba(255, 47, 179, ${0.3 * fade})`;
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+/**
+ * Poster stickers, all drawn — no image assets: a corner ribbon ("CORAL BAY •
+ * EST. 2026"), a gold palm badge, and a rotated heat-index tag. They are the dressing
+ * that makes a cover look printed and collected rather than merely exported.
+ */
+function drawPosterStickers(ctx, state, width, height) {
+  const stickers = state.stickers ?? {};
+  ctx.save();
+  if (stickers.ribbon) {
+    const bandWidth = Math.min(width, height) * 0.052;
+    ctx.save();
+    ctx.translate(width, 0);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = '#e23e8f';
+    ctx.fillRect(-bandWidth * 0.2, -bandWidth * 3.4, bandWidth, bandWidth * 7);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `700 ${bandWidth * 0.42}px ${BODY_FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('CORAL BAY • EST. 2026', 0, 0);
+    ctx.restore();
+  }
+  if (stickers.palmBadge) {
+    const radius = Math.min(width, height) * 0.055;
+    const centreX = width - radius * 1.5;
+    const centreY = radius * 3.1;
+    ctx.beginPath();
+    ctx.arc(centreX, centreY, radius, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffd76e';
+    ctx.fill();
+    ctx.lineWidth = radius * 0.08;
+    ctx.strokeStyle = '#131a2c';
+    ctx.stroke();
+    drawPalmSilhouette(ctx, centreX - radius * 0.28, centreY + radius * 0.62, radius * 1.15, '#131a2c');
+  }
+  if (stickers.heatTag) {
+    const tagWidth = width * 0.17;
+    const tagHeight = tagWidth * 0.34;
+    const centreX = width - tagWidth * 0.62;
+    const centreY = height - tagHeight * 1.7;
+    ctx.save();
+    ctx.translate(centreX, centreY);
+    ctx.rotate(-0.1);
+    ctx.fillStyle = '#131a2c';
+    ctx.fillRect(-tagWidth / 2, -tagHeight / 2, tagWidth, tagHeight);
+    ctx.strokeStyle = '#ffd76e';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-tagWidth / 2, -tagHeight / 2, tagWidth, tagHeight);
+    ctx.beginPath();
+    ctx.arc(-tagWidth * 0.4, 0, tagHeight * 0.13, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffd76e';
+    ctx.fill();
+    ctx.font = `800 ${tagHeight * 0.4}px ${BODY_FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('HEAT INDEX 98°', tagWidth * 0.05, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
 /** Scrims that keep the lettering readable over busy art, top and bottom. */
 function drawLetteringScrims(ctx, width, height) {
   const top = ctx.createLinearGradient(0, 0, 0, height * 0.3);
@@ -543,10 +627,12 @@ export function drawCoverArt(canvas, state, photos) {
     if (!panel.rot) drawRoleTagChip(ctx, panel, state.panels[index].roleTag, width, height);
   });
   drawLetteringScrims(ctx, width, height);
+  if (state.halftoneBand) drawHalftoneTitleBand(ctx, width, height);
   const titleBottom = renderPosterTitleLettering(ctx, state, width, height);
   const subtitleBottom = drawNeonSubtitle(ctx, state, width, titleBottom);
   drawHeatStarMeter(ctx, state, width, subtitleBottom);
   applyFinishingPass(ctx, state, grade, width, height);
+  drawPosterStickers(ctx, state, width, height);
   if (state.showSeal) drawOriginalSeal(ctx, width, height);
   if (state.showBilling) drawBillingBlock(ctx, state, width, height);
 }

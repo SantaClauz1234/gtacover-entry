@@ -99,6 +99,23 @@ export const PANEL_LAYOUTS = [
       rectPanel(0, 0.5, 0.38, 0.5),
     ],
   },
+  {
+    id: 'castwall', name: 'Cast Wall Five',
+    panels: [
+      rectPanel(0, 0, 0.5, 0.58, { hero: true }),
+      rectPanel(0.5, 0, 0.5, 0.58),
+      rectPanel(0, 0.58, 1 / 3, 0.42),
+      rectPanel(1 / 3, 0.58, 1 / 3, 0.42),
+      rectPanel(2 / 3, 0.58, 1 / 3, 0.42),
+    ],
+  },
+  {
+    id: 'duo', name: 'Duo Stack',
+    panels: [
+      rectPanel(0, 0, 1, 0.62, { hero: true }),
+      rectPanel(0, 0.62, 1, 0.38),
+    ],
+  },
 ];
 
 /** Finds a layout by id, falling back to the hero layout for an unknown id. */
