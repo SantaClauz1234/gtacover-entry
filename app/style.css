@@ -1,0 +1,177 @@
+/* Bayshore Heat — Cover Studio theme, recorded rebuild.
+   A dark Vice studio: marina navy, sunset orange, neon pink, teal and gold.
+   Colour, borders and shadow only — no webfonts and no image assets in the
+   theme itself, so the studio paints identically with the network off. */
+
+:root {
+  --ink: #0d0a1a;
+  --panel: #1a1330;
+  --edge: #342a5c;
+  --text: #f4eefc;
+  --muted: #b7a9d9;
+  --pink: #ff2fb3;
+  --orange: #ff8c42;
+  --teal: #2ee6c8;
+  --gold: #ffd76e;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  color: var(--text);
+  font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
+  background:
+    radial-gradient(1200px 600px at 15% -10%, #3d1d63 0%, transparent 60%),
+    radial-gradient(1000px 700px at 95% 0%, #7a1049 0%, transparent 55%),
+    linear-gradient(160deg, #120b26 0%, #0d0a1a 55%, #160a24 100%);
+}
+
+#topbar {
+  display: flex; align-items: center; gap: 28px;
+  padding: 12px 22px;
+  border-bottom: 2px solid var(--edge);
+  background: rgba(13, 10, 26, 0.82);
+  position: sticky; top: 0; z-index: 5;
+  backdrop-filter: blur(6px);
+}
+
+#brand { display: flex; align-items: center; gap: 12px; }
+
+#brand-mark {
+  display: grid; place-items: center;
+  width: 46px; height: 46px; border-radius: 50%;
+  border: 2px solid var(--gold); color: var(--gold);
+  font-weight: 900; background: #171029;
+  box-shadow: 0 0 14px rgba(255, 215, 110, 0.35);
+}
+
+#brand-name {
+  margin: 0; font-size: 21px; letter-spacing: 1.5px;
+  background: linear-gradient(92deg, #ffe259, #ff7518 55%, #ff2fb3);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+#brand-sub { margin: 0; color: var(--muted); font-size: 12px; }
+
+#steps {
+  display: flex; gap: 18px; list-style: none;
+  margin: 0 auto; padding: 0; color: var(--muted); font-size: 13px;
+}
+
+#steps strong {
+  display: inline-grid; place-items: center;
+  width: 20px; height: 20px; margin-right: 6px; border-radius: 50%;
+  background: var(--pink); color: #fff; font-size: 12px;
+  box-shadow: 0 0 10px rgba(255, 47, 179, 0.6);
+}
+
+button {
+  font: inherit; font-weight: 700;
+  padding: 9px 13px; border: 1px solid var(--edge); border-radius: 8px;
+  background: #241a47; color: var(--text); cursor: pointer;
+}
+button:hover { border-color: var(--teal); box-shadow: 0 0 10px rgba(46, 230, 200, 0.25); }
+button.active { background: linear-gradient(120deg, #ff7518, #ff2fb3); border-color: transparent; color: #fff; }
+button:disabled { opacity: 0.38; cursor: default; box-shadow: none; }
+
+#export-all-top, #export-png {
+  background: linear-gradient(120deg, #ff7518, #ff2fb3);
+  border: 0; color: #fff;
+  box-shadow: 0 4px 16px rgba(255, 47, 179, 0.35);
+}
+
+#studio {
+  display: grid; grid-template-columns: 300px minmax(0, 1fr) 300px;
+  gap: 18px; padding: 18px 22px 26px; align-items: start;
+}
+
+#library-column, #inspector-column { display: flex; flex-direction: column; gap: 14px; }
+
+.card {
+  background: linear-gradient(180deg, rgba(38, 27, 78, 0.92), rgba(22, 15, 44, 0.92));
+  border: 1px solid var(--edge); border-radius: 12px; padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+}
+.card h2 {
+  margin: 0; font-size: 13px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--gold);
+}
+
+label { display: flex; flex-direction: column; gap: 5px; font-weight: 600; font-size: 13px; }
+label.check { flex-direction: row; align-items: center; gap: 8px; }
+
+input[type="text"], select {
+  font: inherit; padding: 8px 9px; border-radius: 7px;
+  border: 1px solid var(--edge); background: #120c26; color: var(--text);
+}
+input[type="range"] { width: 100%; accent-color: var(--pink); }
+input[type="checkbox"] { accent-color: var(--pink); width: 16px; height: 16px; }
+
+#drop-zone {
+  border: 2px dashed #6d5ba8; border-radius: 10px; padding: 16px 12px;
+  text-align: center; color: var(--muted); cursor: pointer;
+  background: rgba(255, 47, 179, 0.05);
+}
+#drop-zone:hover { border-color: var(--pink); color: var(--text); }
+#photo-input { display: none; }
+
+#photo-tray { display: flex; flex-wrap: wrap; gap: 8px; }
+#photo-tray .thumb {
+  width: 58px; height: 58px; object-fit: cover; border-radius: 8px;
+  border: 2px solid var(--edge); cursor: pointer;
+}
+#photo-tray .thumb:hover { border-color: var(--gold); }
+
+.button-row { display: flex; gap: 8px; }
+.button-row button { flex: 1; padding: 8px 6px; font-size: 12.5px; }
+
+#layout-grid, #grade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#layout-grid button, #grade-grid button { font-size: 12.5px; padding: 8px 6px; }
+#grade-grid button { border-left: 6px solid var(--gold); }
+
+#stage-column { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+#canvas-wrap {
+  padding: 10px; border-radius: 14px;
+  background: linear-gradient(150deg, #2a1b52, #150d2e);
+  border: 1px solid var(--edge);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 42px rgba(255, 47, 179, 0.12);
+}
+
+#cover-canvas {
+  display: block; max-width: 100%; width: auto; height: auto;
+  max-height: 74vh; cursor: grab; touch-action: none;
+}
+#cover-canvas:active { cursor: grabbing; }
+
+#canvas-hint { margin: 0; color: var(--muted); font-size: 12.5px; }
+#status-line { margin: 0; color: var(--teal); font-size: 13px; min-height: 18px; }
+
+#panel-chips, #tag-presets, #caption-templates { display: flex; flex-wrap: wrap; gap: 6px; }
+#panel-chips button, #tag-presets button, #caption-templates button {
+  padding: 5px 9px; font-size: 12px; border-radius: 999px;
+}
+
+#history-buttons { display: flex; gap: 8px; }
+#formula-list { display: flex; flex-direction: column; gap: 8px; }
+#formula-list button { text-align: left; }
+#formula-note, #export-note { margin: 0; color: var(--muted); font-size: 12.5px; }
+#export-all, #export-png { width: 100%; }
+
+/* Screenshot scene: ?shot=cover shows only the exported art, full frame. */
+body.shot-cover #topbar, body.shot-cover #library-column, body.shot-cover #inspector-column,
+body.shot-cover #canvas-hint, body.shot-cover #status-line { display: none; }
+body.shot-cover #studio { display: block; padding: 0; }
+body.shot-cover #canvas-wrap { padding: 0; border: 0; border-radius: 0; box-shadow: none; background: none; }
+body.shot-cover #cover-canvas {
+  width: 100vw; height: 100vh; max-width: none; max-height: none;
+  object-fit: contain; background: #170b28;
+}
+
+@media (max-width: 1100px) {
+  #studio { grid-template-columns: 1fr; }
+  #steps { display: none; }
+}
