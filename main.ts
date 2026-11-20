@@ -41,6 +41,25 @@ function assertDossierHasCover(dir: string): number {
   return Buffer.byteLength(raw);
 }
 
+/**
+ * Preflight against the gate's own caps, run on the source tree before a byte
+ * is copied: every screenshot must be a JPEG/PNG of at most 256 KiB and the
+ * app tree must stay far below its file ceiling. Catching an oversized capture
+ * here keeps a doomed hand-in from ever reaching the sealed scorer.
+ */
+function preflightGateCaps(sourceRoot: string): void {
+  const shotsDir = join(sourceRoot, 'screenshots');
+  if (existsSync(shotsDir)) {
+    for (const name of readdirSync(shotsDir)) {
+      const size = statSync(join(shotsDir, name)).size;
+      if (size > 262144) throw new Error(`screenshot ${name} is ${size} bytes, over the 256 KiB gate cap`);
+    }
+  }
+  const appCount = countTreeFiles(join(sourceRoot, 'app'));
+  if (appCount > 993) throw new Error(`app/ holds ${appCount} files, over the 993 gate cap`);
+}
+
+preflightGateCaps(here);
 mkdirSync(outDir, { recursive: true });
 cpSync(join(here, 'app'), join(outDir, 'app'), { recursive: true });
 mkdirSync(join(outDir, 'screenshots'), { recursive: true });
