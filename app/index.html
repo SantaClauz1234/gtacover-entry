@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bayshore Heat — Cover Studio</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header id="topbar">
+  <div id="brand">
+    <span id="brand-mark">BH</span>
+    <div>
+      <h1 id="brand-name">BAYSHORE HEAT</h1>
+      <p id="brand-sub">Cover Studio — your photos, poster-sized</p>
+    </div>
+  </div>
+  <ol id="steps">
+    <li><strong>1</strong> Add photos</li>
+    <li><strong>2</strong> Style the cover</li>
+    <li><strong>3</strong> Export PNG</li>
+  </ol>
+  <button id="export-all-top" type="button">Export all 3 sizes</button>
+</header>
+
+<main id="studio">
+  <aside id="library-column">
+    <section id="photos-card" class="card">
+      <h2>Your photos</h2>
+      <label id="drop-zone">
+        <span id="drop-zone-text">Drop photos here or click to choose — they never leave your computer</span>
+        <input id="photo-input" type="file" accept="image/*" multiple>
+      </label>
+      <div id="photo-tray"></div>
+      <div class="button-row">
+        <button id="load-samples" type="button">Use sample photos</button>
+        <button id="clear-photos" type="button">Clear</button>
+      </div>
+      <div class="button-row">
+        <button id="fill-all-panels" type="button">Fill all panels from one photo</button>
+        <button id="spread-photos" type="button">Spread photos across panels</button>
+      </div>
+    </section>
+
+    <section id="caption-card" class="card">
+      <h2>Caption</h2>
+      <label>Poster title <input id="title-input" type="text" maxlength="34" value="Bayshore Heat"></label>
+      <label>Script subtitle <input id="subtitle-input" type="text" maxlength="48" value="welcome to coral bay"></label>
+      <label>Billing block <input id="billing-input" type="text" maxlength="150" value="Bayshore Heat Pictures presents a Coral Bay story starring you and yours — music by the tide, directed by the golden hour"></label>
+      <label>Lettering
+        <select id="lettering-select">
+          <option value="chrome">Striped retro-chrome, extruded</option>
+          <option value="sunset">Sunset gradient, white keyline</option>
+        </select>
+      </label>
+      <label>Heat stars <input id="stars-range" type="range" min="0" max="5" step="1" value="5"></label>
+    </section>
+
+    <section id="layout-card" class="card">
+      <h2>Panel layout</h2>
+      <div id="layout-grid"></div>
+    </section>
+
+    <section id="grade-card" class="card">
+      <h2>Vice grade</h2>
+      <div id="grade-grid"></div>
+      <label>Finish
+        <select id="finish-select">
+          <option value="photo">Photo</option>
+          <option value="painted">Painted panels</option>
+          <option value="ink">Poster Ink</option>
+        </select>
+      </label>
+    </section>
+  </aside>
+
+  <section id="stage-column">
+    <div id="canvas-wrap">
+      <canvas id="cover-canvas" width="1080" height="1350"></canvas>
+    </div>
+    <p id="canvas-hint">Click a panel to select it — drag on the cover to pan its photo, scroll to zoom it.</p>
+    <p id="status-line" role="status">Poster ready. Add your own photos or export the sample cover.</p>
+  </section>
+
+  <aside id="inspector-column">
+    <section id="panel-card" class="card">
+      <h2>Panel inspector</h2>
+      <div id="panel-chips"></div>
+      <label>Photo in this panel
+        <select id="panel-photo-select"></select>
+      </label>
+      <label>Zoom <input id="panel-zoom" type="range" min="1" max="3" step="0.01" value="1"></label>
+      <label>Pan across <input id="panel-pan-x" type="range" min="-0.5" max="0.5" step="0.005" value="0"></label>
+      <label>Pan down <input id="panel-pan-y" type="range" min="-0.5" max="0.5" step="0.005" value="0"></label>
+      <label>Crop anchor
+        <select id="panel-anchor">
+          <option value="top">Portrait — keep faces (top)</option>
+          <option value="center">Centre</option>
+          <option value="bottom">Ground line (bottom)</option>
+        </select>
+      </label>
+      <label>Cast role tag <input id="panel-tag" type="text" maxlength="18" placeholder="THE DRIVER"></label>
+      <div id="tag-presets"></div>
+      <div class="button-row">
+        <button id="panel-auto-center" type="button">Auto-centre crop</button>
+        <button id="panel-scenery-next" type="button">Next scenery backdrop</button>
+      </div>
+    </section>
+
+    <section id="poster-card" class="card">
+      <h2>Poster dressing</h2>
+      <label class="check"><input id="popout-toggle" type="checkbox" checked> Pop-out hero (breaks its frame)</label>
+      <label class="check"><input id="seal-toggle" type="checkbox" checked> Original seal</label>
+      <label class="check"><input id="billing-toggle" type="checkbox" checked> Billing block</label>
+    </section>
+
+    <section id="export-card" class="card">
+      <h2>Export</h2>
+      <label>Post size
+        <select id="size-select">
+          <option value="1080x1080">Square — 1080 × 1080</option>
+          <option value="1080x1350" selected>Portrait — 1080 × 1350</option>
+          <option value="1920x1080">Wide — 1920 × 1080</option>
+        </select>
+      </label>
+      <button id="export-png" type="button">Export PNG</button>
+      <button id="export-all" type="button">Export all 3 sizes</button>
+      <p id="export-note">One click from photo to a shareable PNG, in the three common post sizes.</p>
+    </section>
+  </aside>
+</main>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
