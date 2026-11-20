@@ -38,7 +38,9 @@ function assertDossierHasCover(dir: string): number {
   if (!Array.isArray(parsed.images) || parsed.images.length < 3 || parsed.cover !== 0) {
     throw new Error('dossier.json must list at least 3 screenshots with the first one as cover');
   }
-  return Buffer.byteLength(raw);
+  const bytes = Buffer.byteLength(raw);
+  if (bytes > 1572864) throw new Error(`dossier.json is ${bytes} bytes, over the 1.5 MiB gate cap`);
+  return bytes;
 }
 
 /**

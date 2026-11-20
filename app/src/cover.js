@@ -260,6 +260,41 @@ function drawPanelKeylines(ctx, layout, width, height) {
   ctx.strokeRect(0, 0, width, height);
 }
 
+/**
+ * The pop-out hero: the hero panel's photo is painted a second time, spilling
+ * past its frame over the neighbouring panels under a soft shadow, so the
+ * subject breaks out of the collage the way the board's winning covers do.
+ * It runs after the keylines and before the lettering, so the title still
+ * sits over the art, and it skips tilted or slashed hero panels, whose frames
+ * are not rectangles a spill can honestly escape from.
+ */
+function drawPopOutHero(ctx, layout, state, photos, grade, finish, width, height) {
+  const heroIndex = layout.panels.findIndex((panel) => panel.hero);
+  if (heroIndex === -1) return;
+  const panel = layout.panels[heroIndex];
+  if (panel.rot || panel.poly) return;
+  const panelState = state.panels[heroIndex];
+  const photo = panelState && panelState.photoIndex >= 0 ? photos[panelState.photoIndex] : null;
+  if (!photo) return;
+  const spillX = width * 0.055;
+  const spillY = height * 0.055;
+  const fromX = Math.max(0, panel.x * width - (panel.x > 0.4 ? spillX : 0));
+  const fromY = Math.max(0, panel.y * height - (panel.y > 0.4 ? spillY : 0));
+  const toX = Math.min(width, (panel.x + panel.w) * width + spillX);
+  const toY = Math.min(height, (panel.y + panel.h) * height + spillY);
+  const art = drawPhotoCroppedIntoPanel(photo, panelState, toX - fromX, toY - fromY, grade.filter);
+  applyViceGradeToPanel(art, grade, finish);
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+  ctx.shadowBlur = width * 0.02;
+  ctx.drawImage(art, fromX, fromY, toX - fromX, toY - fromY);
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = Math.max(6, width * 0.007);
+  ctx.strokeRect(fromX, fromY, toX - fromX, toY - fromY);
+  ctx.restore();
+}
+
 /** The dark chip carrying a cast role ("THE DRIVER") pinned inside a panel. */
 function drawRoleTagChip(ctx, panel, text, width, height) {
   const label = (text || '').trim().toUpperCase();
@@ -565,9 +600,9 @@ function applyFinishingPass(ctx, state, grade, width, height) {
 }
 
 /**
- * Draws the complete cover at the canvas's own size. Pop-out hero rendering
- * joins this path in the next stage; everything else — panels, keylines, role
- * tags, finishing, stickers, scrims, lettering, seal, billing — is final here.
+ * Draws the complete cover at the canvas's own size: panels, keylines, the
+ * pop-out hero, role tags, finishing pass, stickers, scrims, lettering, seal
+ * and billing, in that order, every time.
  */
 export function drawCoverArt(canvas, state, photos) {
   const ctx = canvas.getContext('2d');
@@ -580,6 +615,7 @@ export function drawCoverArt(canvas, state, photos) {
     renderPanelInto(ctx, panel, state.panels[index], photos, grade, state.finish, width, height);
   });
   drawPanelKeylines(ctx, layout, width, height);
+  if (state.popOut) drawPopOutHero(ctx, layout, state, photos, grade, state.finish, width, height);
   layout.panels.forEach((panel, index) => {
     if (!panel.rot) drawRoleTagChip(ctx, panel, state.panels[index].roleTag, width, height);
   });
