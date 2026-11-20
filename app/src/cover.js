@@ -306,7 +306,8 @@ function drawRoleTagChip(ctx, panel, text, width, height) {
   const label = text.trim().toUpperCase();
   const chipWidth = ctx.measureText(label).width + fontSize * 1.1;
   const chipX = (panel.x + panel.w) * width - chipWidth - width * 0.012;
-  const chipY = (panel.y + panel.h) * height - fontSize * 2.15;
+  let chipY = (panel.y + panel.h) * height - fontSize * 2.15;
+  if (panel.y + panel.h > 0.95) chipY -= height * 0.045; // lift clear of the billing block
   ctx.fillStyle = 'rgba(8, 8, 18, 0.82)';
   ctx.fillRect(chipX, chipY, chipWidth, fontSize * 1.55);
   ctx.fillStyle = '#ffd76e';
@@ -318,11 +319,17 @@ function drawRoleTagChip(ctx, panel, text, width, height) {
   ctx.restore();
 }
 
-/** Fits display lettering to a target width by shrinking the font until it fits. */
+/**
+ * Fits display lettering to a target width by shrinking the font until it fits.
+ * The measured width is padded for the letter-spacing and the chrome extrusion's
+ * rightward stack, which measureText does not know about — without the pad, a long
+ * title's last letter slides off the poster's right edge.
+ */
 function fitDisplayFont(ctx, text, targetWidth, startSize) {
   let size = startSize;
+  const renderedWidth = () => ctx.measureText(text).width + text.length * size * 0.02 + size * 0.1;
   ctx.font = `900 ${size}px ${DISPLAY_FONT}`;
-  while (ctx.measureText(text).width > targetWidth && size > 14) {
+  while (renderedWidth() > targetWidth && size > 14) {
     size *= 0.94;
     ctx.font = `900 ${size}px ${DISPLAY_FONT}`;
   }
@@ -339,7 +346,7 @@ function renderPosterTitleLettering(ctx, state, width, height) {
   if (!title) return 0;
   const centreX = width / 2;
   const baseSize = height * 0.115;
-  const size = fitDisplayFont(ctx, title, width * 0.92, baseSize);
+  const size = fitDisplayFont(ctx, title, width * 0.88, baseSize);
   const baselineY = height * 0.045 + size;
   ctx.save();
   ctx.textAlign = 'center';
@@ -436,7 +443,7 @@ function drawOriginalSeal(ctx, width, height) {
   ctx.arc(centreX, centreY, radius * 0.78, 0, Math.PI * 2);
   ctx.lineWidth = radius * 0.03;
   ctx.stroke();
-  const ringText = 'BAYSHORE HEAT • ORIGINAL COVER • EST. 2026 • ';
+  const ringText = 'BAYSHORE HEAT • ORIGINAL COVER • ';
   ctx.fillStyle = '#ffd76e';
   ctx.font = `700 ${radius * 0.19}px ${BODY_FONT}`;
   ctx.textAlign = 'center';
@@ -463,7 +470,7 @@ function drawBillingBlock(ctx, state, width, height) {
   let size = Math.max(11, width * 0.0135);
   ctx.save();
   ctx.font = `600 ${size}px ${BODY_FONT}`;
-  while (ctx.measureText(billing).width > width * 0.9 && size > 8) {
+  while (ctx.measureText(billing).width > width * 0.86 && size > 8) {
     size *= 0.95;
     ctx.font = `600 ${size}px ${BODY_FONT}`;
   }
@@ -539,17 +546,21 @@ function drawPosterStickers(ctx, state, width, height) {
   const stickers = state.stickers ?? {};
   ctx.save();
   if (stickers.ribbon) {
-    const bandWidth = Math.min(width, height) * 0.052;
+    // A band across the top-right corner: its spine runs from (width - reach, 0) to
+    // (width, reach), so the band is drawn centred on that spine's midpoint, rotated
+    // to lie along it, with the words centred on the spine where they stay on-canvas.
+    const reach = Math.min(width, height) * 0.24;
+    const bandWidth = Math.min(width, height) * 0.05;
     ctx.save();
-    ctx.translate(width, 0);
+    ctx.translate(width - reach / 2, reach / 2);
     ctx.rotate(Math.PI / 4);
     ctx.fillStyle = '#e23e8f';
-    ctx.fillRect(-bandWidth * 0.2, -bandWidth * 3.4, bandWidth, bandWidth * 7);
+    ctx.fillRect(-reach * 0.78, -bandWidth / 2, reach * 1.56, bandWidth);
     ctx.fillStyle = '#ffffff';
-    ctx.font = `700 ${bandWidth * 0.42}px ${BODY_FONT}`;
+    ctx.font = `700 ${bandWidth * 0.4}px ${BODY_FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('CORAL BAY • EST. 2026', 0, 0);
+    ctx.fillText('CORAL BAY • EST. 2026', 0, bandWidth * 0.04);
     ctx.restore();
   }
   if (stickers.palmBadge) {
@@ -569,7 +580,7 @@ function drawPosterStickers(ctx, state, width, height) {
     const tagWidth = width * 0.17;
     const tagHeight = tagWidth * 0.34;
     const centreX = width - tagWidth * 0.62;
-    const centreY = height - tagHeight * 1.7;
+    const centreY = height - tagHeight * 2.9;
     ctx.save();
     ctx.translate(centreX, centreY);
     ctx.rotate(-0.1);
@@ -579,14 +590,14 @@ function drawPosterStickers(ctx, state, width, height) {
     ctx.lineWidth = 2;
     ctx.strokeRect(-tagWidth / 2, -tagHeight / 2, tagWidth, tagHeight);
     ctx.beginPath();
-    ctx.arc(-tagWidth * 0.4, 0, tagHeight * 0.13, 0, Math.PI * 2);
+    ctx.arc(-tagWidth * 0.43, 0, tagHeight * 0.11, 0, Math.PI * 2);
     ctx.fillStyle = '#ffd76e';
     ctx.fill();
-    ctx.font = `800 ${tagHeight * 0.4}px ${BODY_FONT}`;
+    ctx.font = `800 ${tagHeight * 0.36}px ${BODY_FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText('HEAT INDEX 98°', tagWidth * 0.05, 0);
+    ctx.fillText('HEAT INDEX 98°', tagWidth * 0.07, 0);
     ctx.restore();
   }
   ctx.restore();
@@ -626,13 +637,13 @@ export function drawCoverArt(canvas, state, photos) {
   layout.panels.forEach((panel, index) => {
     if (!panel.rot) drawRoleTagChip(ctx, panel, state.panels[index].roleTag, width, height);
   });
+  applyFinishingPass(ctx, state, grade, width, height);
+  drawPosterStickers(ctx, state, width, height);
   drawLetteringScrims(ctx, width, height);
   if (state.halftoneBand) drawHalftoneTitleBand(ctx, width, height);
   const titleBottom = renderPosterTitleLettering(ctx, state, width, height);
   const subtitleBottom = drawNeonSubtitle(ctx, state, width, titleBottom);
   drawHeatStarMeter(ctx, state, width, subtitleBottom);
-  applyFinishingPass(ctx, state, grade, width, height);
-  drawPosterStickers(ctx, state, width, height);
   if (state.showSeal) drawOriginalSeal(ctx, width, height);
   if (state.showBilling) drawBillingBlock(ctx, state, width, height);
 }
