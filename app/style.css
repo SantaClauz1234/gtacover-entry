@@ -1,4 +1,4 @@
-/* Bayshore Heat — Cover Studio theme, recorded rebuild.
+/* Bayshore Heat — Cover Studio theme, written fresh in the recorded-v2 session.
    A dark Vice studio: marina navy, sunset orange, neon pink, teal and gold.
    Colour, borders and shadow only — no webfonts and no image assets in the
    theme itself, so the studio paints identically with the network off. */
@@ -127,6 +127,7 @@ input[type="checkbox"] { accent-color: var(--pink); width: 16px; height: 16px; }
 
 .button-row { display: flex; gap: 8px; }
 .button-row button { flex: 1; padding: 8px 6px; font-size: 12.5px; }
+.button-row input[type="text"] { flex: 1; min-width: 0; }
 
 #layout-grid, #grade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 #layout-grid button, #grade-grid button { font-size: 12.5px; padding: 8px 6px; }
@@ -150,15 +151,21 @@ input[type="checkbox"] { accent-color: var(--pink); width: 16px; height: 16px; }
 #canvas-hint { margin: 0; color: var(--muted); font-size: 12.5px; }
 #status-line { margin: 0; color: var(--teal); font-size: 13px; min-height: 18px; }
 
-#panel-chips, #tag-presets, #caption-templates { display: flex; flex-wrap: wrap; gap: 6px; }
-#panel-chips button, #tag-presets button, #caption-templates button {
+#panel-chips, #tag-presets, #caption-templates, #headline-presets {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+#panel-chips button, #tag-presets button, #caption-templates button, #headline-presets button {
   padding: 5px 9px; font-size: 12px; border-radius: 999px;
+}
+#headline-presets button.mini-delete {
+  padding: 5px 7px; border-radius: 50%;
+  background: transparent; color: var(--muted);
 }
 
 #history-buttons { display: flex; gap: 8px; }
 #formula-list { display: flex; flex-direction: column; gap: 8px; }
 #formula-list button { text-align: left; }
-#formula-note, #export-note { margin: 0; color: var(--muted); font-size: 12.5px; }
+#formula-note, #export-note, #headline-note { margin: 0; color: var(--muted); font-size: 12.5px; }
 #export-all, #export-png { width: 100%; }
 
 /* Screenshot scene: ?shot=cover shows only the exported art, full frame. */

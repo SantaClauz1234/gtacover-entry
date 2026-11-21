@@ -68,6 +68,25 @@
       <label>Heat stars <input id="stars-range" type="range" min="0" max="5" step="1" value="5"></label>
     </section>
 
+    <section id="coverline-card" class="card">
+      <h2>Coverline &amp; headline presets</h2>
+      <label class="check"><input id="coverline-toggle" type="checkbox"> Show coverline band</label>
+      <label>Coverline <input id="coverline-input" type="text" maxlength="52" value="ONE LAST SUMMER IN CORAL BAY"></label>
+      <label>Coverline style
+        <select id="coverline-style-select">
+          <option value="band">Gold band</option>
+          <option value="outline">Outline shout</option>
+          <option value="ticket">Ticket stub</option>
+        </select>
+      </label>
+      <div id="headline-presets"></div>
+      <div class="button-row">
+        <input id="headline-preset-name" type="text" maxlength="28" placeholder="Name this headline…">
+        <button id="save-headline-preset" type="button">Save headline</button>
+      </div>
+      <p id="headline-note">A headline preset saves the title, subtitle, coverline, layout and grade — one click brings it back on any photos. Saved ones stay on this computer.</p>
+    </section>
+
     <section id="layout-card" class="card">
       <h2>Panel layout</h2>
       <div id="layout-grid"></div>

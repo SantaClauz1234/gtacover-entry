@@ -1,13 +1,23 @@
-// Bayshore Heat — Cover Studio editor, recorded rebuild (full).
-// This file owns the studio state — photos, per-panel crops, caption, layout,
-// grade, dressing — and connects every control on the page to the renderer in
-// cover.js. Photos are read from the maker's own machine with object URLs and
-// are never uploaded; the whole studio works offline from its own files.
+// Bayshore Heat — Cover Studio editor, written fresh in the recorded-v2 session.
+//
+// This file owns the studio state — photos, per-panel crops, caption,
+// coverline, layout, grade, dressing — and connects every control on the page
+// to the renderer in cover.js. Photos are read from the maker's own machine
+// with object URLs and are never uploaded; the whole studio works offline
+// from its own files. Headline presets the maker saves live in localStorage
+// (see presets.js); nothing about them ever leaves the machine.
 
 import { drawCoverArt, exportCoverPng } from './cover.js';
-import { PANEL_LAYOUTS, POSTER_SIZES, ROLE_TAG_PRESETS, freshPanelState, layoutById } from './panels.js';
+import {
+  PANEL_LAYOUTS, POSTER_SIZES, ROLE_TAG_PRESETS, freshPanelState,
+  layoutById, panelAtPoint, sizeById,
+} from './layouts.js';
 import { VICE_GRADES } from './grades.js';
-import { CAPTION_TEMPLATES, POSTER_FORMULAS } from './presets.js';
+import {
+  CAPTION_TEMPLATES, HEADLINE_PRESETS, POSTER_FORMULAS,
+  headlineFields, headlinePresetFromState,
+  loadSavedHeadlinePresets, saveHeadlinePresets,
+} from './presets.js';
 import { runShotScene } from './shots.js';
 
 const canvas = document.getElementById('cover-canvas');
@@ -17,6 +27,9 @@ const state = {
   title: 'Bayshore Heat',
   subtitle: 'welcome to coral bay',
   billing: 'Bayshore Heat Pictures presents a Coral Bay story starring you and yours — music by the tide, directed by the golden hour',
+  coverline: 'ONE LAST SUMMER IN CORAL BAY',
+  coverlineOn: false,
+  coverlineStyle: 'band',
   layoutId: 'hero',
   gradeId: 'sunset',
   finish: 'photo',
@@ -36,8 +49,8 @@ const state = {
 
 const photos = []; // image elements, in tray order
 const photoNames = []; // matching display names for the panel photo picker
+let savedHeadlines = loadSavedHeadlinePresets();
 
-/** Loads an image element from an object URL or an app-relative path. */
 export function loadPhotoFromUrl(url) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -52,14 +65,14 @@ function say(message) {
 }
 
 function currentSize() {
-  return POSTER_SIZES.find((size) => size.id === state.sizeId) ?? POSTER_SIZES[1];
+  return sizeById(state.sizeId);
 }
 
 function currentLayout() {
   return layoutById(state.layoutId);
 }
 
-/** Keeps the per-panel settings list exactly as long as the active layout. */
+// Keeps the per-panel settings list exactly as long as the active layout.
 function ensurePanelStates() {
   const count = currentLayout().panels.length;
   while (state.panels.length < count) state.panels.push(freshPanelState(state.panels.length));
@@ -67,7 +80,7 @@ function ensurePanelStates() {
   if (state.selectedPanel >= count) state.selectedPanel = 0;
 }
 
-/** Repaints the cover, then refreshes the inspector, pickers and history. */
+// Repaints the cover, then refreshes the inspector, pickers and history.
 function renderStudio() {
   ensurePanelStates();
   const size = currentSize();
@@ -81,7 +94,7 @@ function renderStudio() {
   trackHistory();
 }
 
-// --- Undo / redo -------------------------------------------------------------
+// --- Undo / redo -----------------------------------------------------------
 // Studio state is plain JSON (photos live outside it, in the tray), so a
 // snapshot is one stringify. A render whose state differs from the last
 // snapshot pushes the previous snapshot onto the undo stack; restoring sets a
@@ -140,11 +153,14 @@ function redoLastEdit() {
   say('Redone.');
 }
 
-/** Pushes every state field back into its control, after undo or a formula. */
+// Pushes every state field back into its control, after undo or a formula.
 function syncAllControlsFromState() {
   document.getElementById('title-input').value = state.title;
   document.getElementById('subtitle-input').value = state.subtitle;
   document.getElementById('billing-input').value = state.billing;
+  document.getElementById('coverline-input').value = state.coverline;
+  document.getElementById('coverline-toggle').checked = state.coverlineOn;
+  document.getElementById('coverline-style-select').value = state.coverlineStyle;
   document.getElementById('lettering-select').value = state.lettering;
   document.getElementById('stars-range').value = String(state.stars);
   document.getElementById('finish-select').value = state.finish;
@@ -160,7 +176,8 @@ function syncAllControlsFromState() {
   document.getElementById('vignette-range').value = String(state.vignette);
 }
 
-/** Applies a one-click poster formula: layout, grade, finish, lettering at once. */
+// Applies a one-click poster formula: layout, grade, finish, lettering — and,
+// for the Coverline Strip formula, the coverline itself — all at once.
 function applyPosterFormula(formula) {
   Object.assign(state, formula.recipe);
   state.selectedPanel = 0;
@@ -171,7 +188,66 @@ function applyPosterFormula(formula) {
   say(`Poster formula applied: ${formula.name}. Swap in your photos and export.`);
 }
 
-/** Builds the poster-formula buttons and the caption-template chips. */
+// Applies a headline preset: title, subtitle, coverline, layout and grade
+// from one saved headline, photos untouched.
+function applyHeadlinePreset(preset) {
+  Object.assign(state, headlineFields(preset));
+  state.selectedPanel = 0;
+  ensurePanelStates();
+  buildPanelChips();
+  syncAllControlsFromState();
+  renderStudio();
+  say(`Headline preset applied: ${preset.name}.`);
+}
+
+// Rebuilds the headline-preset list: the four built-ins, then the maker's
+// saved ones, each with a delete button. Saving under an existing name
+// replaces that preset instead of duplicating it.
+function buildHeadlinePresets() {
+  const list = document.getElementById('headline-presets');
+  list.replaceChildren();
+  const renderOne = (preset, saved) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = preset.name;
+    button.title = `${preset.title} — ${preset.subtitle}`;
+    button.addEventListener('click', () => applyHeadlinePreset(preset));
+    list.appendChild(button);
+    if (saved) {
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.textContent = '✕';
+      remove.title = `Delete saved headline “${preset.name}”`;
+      remove.className = 'mini-delete';
+      remove.addEventListener('click', () => {
+        savedHeadlines = savedHeadlines.filter((p) => p.name !== preset.name);
+        saveHeadlinePresets(savedHeadlines);
+        buildHeadlinePresets();
+        say(`Deleted saved headline “${preset.name}”.`);
+      });
+      list.appendChild(remove);
+    }
+  };
+  for (const preset of HEADLINE_PRESETS) renderOne(preset, false);
+  for (const preset of savedHeadlines) renderOne(preset, true);
+}
+
+function saveCurrentHeadline() {
+  const nameInput = document.getElementById('headline-preset-name');
+  const name = (nameInput.value || '').trim() || `My headline ${savedHeadlines.length + 1}`;
+  const preset = headlinePresetFromState(name, state);
+  savedHeadlines = savedHeadlines.filter((p) => p.name !== name);
+  savedHeadlines.push(preset);
+  if (saveHeadlinePresets(savedHeadlines)) {
+    nameInput.value = '';
+    buildHeadlinePresets();
+    say(`Headline saved as “${name}” — one click brings it back on any photos.`);
+  } else {
+    say('Could not save the headline in this browser.');
+  }
+}
+
+// Builds the poster-formula buttons and the caption-template chips.
 function buildPresetControls() {
   const list = document.getElementById('formula-list');
   for (const formula of POSTER_FORMULAS) {
@@ -197,9 +273,10 @@ function buildPresetControls() {
     });
     templates.appendChild(chip);
   }
+  buildHeadlinePresets();
 }
 
-/** Adds user files to the tray; a still-empty poster is spread automatically. */
+// Adds user files to the tray; a still-empty poster is spread automatically.
 async function addPhotosFromFiles(files) {
   const images = [...files].filter((file) => file.type.startsWith('image/'));
   for (const file of images) {
@@ -213,7 +290,7 @@ async function addPhotosFromFiles(files) {
   say(`${photos.length} photo(s) in the tray — panels filled, photos stayed on your computer.`);
 }
 
-/** Loads the two sample photos shipped inside app/ (free to use, made for the kit). */
+// Loads the two sample photos shipped inside app/ (free to use, made for the kit).
 async function loadSamplePhotos() {
   if (photos.length > 0) return;
   photos.push(await loadPhotoFromUrl('samples/boulevard.jpg'));
@@ -222,7 +299,7 @@ async function loadSamplePhotos() {
   refreshPhotoTray();
 }
 
-/** Rebuilds the tray thumbnails; a click sends that photo to the selected panel. */
+// Rebuilds the tray thumbnails; a click sends that photo to the selected panel.
 function refreshPhotoTray() {
   const tray = document.getElementById('photo-tray');
   tray.replaceChildren();
@@ -242,7 +319,7 @@ function refreshPhotoTray() {
   refreshPanelPhotoOptions();
 }
 
-/** Rebuilds the inspector's photo picker: scenery backdrop plus every photo. */
+// Rebuilds the inspector's photo picker: scenery backdrop plus every photo.
 function refreshPanelPhotoOptions() {
   const select = document.getElementById('panel-photo-select');
   select.replaceChildren();
@@ -258,12 +335,10 @@ function refreshPanelPhotoOptions() {
   });
 }
 
-/**
- * Spread: one photo per panel, round-robin, each with its own crop — the hero
- * panel gets a portrait-anchored close crop, the rest alternate anchors and
- * zooms, and the leading panels pick up cast role tags so the poster reads
- * like a cast collage from the first click.
- */
+// Spread: one photo per panel, round-robin, each with its own crop — the hero
+// panel gets a portrait-anchored close crop, the rest alternate anchors and
+// zooms, and the leading panels pick up cast role tags so the poster reads
+// like a cast collage from the first click.
 function spreadPhotosAcrossPanels() {
   if (photos.length === 0) return;
   ensurePanelStates();
@@ -278,7 +353,7 @@ function spreadPhotosAcrossPanels() {
   });
 }
 
-/** Fill all: every panel shows the same photo, each cropped differently. */
+// Fill all: every panel shows the same photo, each cropped differently.
 function fillAllPanelsFromOnePhoto(photoIndex) {
   if (photoIndex < 0 || photoIndex >= photos.length) return;
   ensurePanelStates();
@@ -292,7 +367,7 @@ function fillAllPanelsFromOnePhoto(photoIndex) {
   });
 }
 
-/** Mirrors the selected panel's settings into the inspector controls. */
+// Mirrors the selected panel's settings into the inspector controls.
 function syncPanelInspector() {
   const panel = state.panels[state.selectedPanel];
   if (!panel) return;
@@ -307,7 +382,7 @@ function syncPanelInspector() {
   });
 }
 
-/** Highlights the active layout and grade choices across the studio. */
+// Highlights the active layout and grade choices across the studio.
 function markActiveButtons() {
   document.querySelectorAll('#layout-grid button').forEach((button) => {
     button.classList.toggle('active', button.dataset.layout === state.layoutId);
@@ -317,7 +392,7 @@ function markActiveButtons() {
   });
 }
 
-/** Builds the layout picker, grade swatches, panel chips and role-tag presets. */
+// Builds the layout picker, grade swatches, panel chips and role-tag presets.
 function buildStudioControls() {
   const layoutGrid = document.getElementById('layout-grid');
   for (const layout of PANEL_LAYOUTS) {
@@ -341,7 +416,7 @@ function buildStudioControls() {
     button.type = 'button';
     button.dataset.grade = grade.id;
     button.textContent = grade.name;
-    button.style.borderLeftColor = grade.washBottom;
+    button.style.borderLeftColor = grade.bottom;
     button.addEventListener('click', () => {
       state.gradeId = grade.id;
       renderStudio();
@@ -363,7 +438,7 @@ function buildStudioControls() {
   buildPanelChips();
 }
 
-/** Rebuilds the panel selector chips for the active layout, hero starred. */
+// Rebuilds the panel selector chips for the active layout, hero starred.
 function buildPanelChips() {
   const chips = document.getElementById('panel-chips');
   chips.replaceChildren();
@@ -379,39 +454,14 @@ function buildPanelChips() {
   });
 }
 
-/** Point-in-polygon test for the slashed layout's diagonal panels. */
-function pointInsidePolygon(x, y, poly) {
-  let inside = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i, i += 1) {
-    const [xi, yi] = poly[i];
-    const [xj, yj] = poly[j];
-    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
-  }
-  return inside;
-}
-
-/** Hit-tests a point on the cover and returns the topmost panel under it. */
-function panelIndexAtPoint(x, y) {
-  const layout = currentLayout();
-  for (let index = layout.panels.length - 1; index >= 0; index -= 1) {
-    const panel = layout.panels[index];
-    if (panel.poly) {
-      if (pointInsidePolygon(x, y, panel.poly)) return index;
-    } else if (x >= panel.x && x <= panel.x + panel.w && y >= panel.y && y <= panel.y + panel.h) {
-      return index;
-    }
-  }
-  return -1;
-}
-
-/** Drag-to-pan and scroll-to-zoom directly on the cover, click-to-select. */
+// Drag-to-pan and scroll-to-zoom directly on the cover, click-to-select.
 function wireCanvasGestures() {
   let drag = null;
   canvas.addEventListener('pointerdown', (event) => {
     const rect = canvas.getBoundingClientRect();
     const x = (event.clientX - rect.left) / rect.width;
     const y = (event.clientY - rect.top) / rect.height;
-    const index = panelIndexAtPoint(x, y);
+    const index = panelAtPoint(currentLayout(), x, y);
     if (index === -1) return;
     state.selectedPanel = index;
     drag = { lastX: event.clientX, lastY: event.clientY };
@@ -437,7 +487,7 @@ function wireCanvasGestures() {
   }, { passive: false });
 }
 
-/** Connects every form control on the page to the state it edits. */
+// Connects every form control on the page to the state it edits.
 function wireStudioControls() {
   const input = document.getElementById('photo-input');
   input.addEventListener('change', () => addPhotosFromFiles(input.files ?? []));
@@ -472,17 +522,33 @@ function wireStudioControls() {
     renderStudio();
     say('Photos spread across the panels, one cast member per panel.');
   });
-  document.getElementById('title-input').addEventListener('input', (event) => {
-    state.title = event.target.value;
+  const textInputs = [
+    ['title-input', (value) => { state.title = value; }],
+    ['subtitle-input', (value) => { state.subtitle = value; }],
+    ['billing-input', (value) => { state.billing = value; }],
+    ['coverline-input', (value) => { state.coverline = value; }],
+  ];
+  for (const [id, apply] of textInputs) {
+    document.getElementById(id).addEventListener('input', (event) => {
+      apply(event.target.value);
+      renderStudio();
+    });
+  }
+  document.getElementById('coverline-toggle').addEventListener('change', (event) => {
+    state.coverlineOn = event.target.checked;
+    renderStudio();
+    say(state.coverlineOn ? 'Coverline on — a headline band across the lower third.' : 'Coverline off.');
+  });
+  document.getElementById('coverline-style-select').addEventListener('change', (event) => {
+    state.coverlineStyle = event.target.value;
     renderStudio();
   });
-  document.getElementById('subtitle-input').addEventListener('input', (event) => {
-    state.subtitle = event.target.value;
-    renderStudio();
-  });
-  document.getElementById('billing-input').addEventListener('input', (event) => {
-    state.billing = event.target.value;
-    renderStudio();
+  document.getElementById('save-headline-preset').addEventListener('click', saveCurrentHeadline);
+  document.getElementById('headline-preset-name').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      saveCurrentHeadline();
+    }
   });
   document.getElementById('lettering-select').addEventListener('change', (event) => {
     state.lettering = event.target.value;
@@ -587,7 +653,7 @@ function wireStudioControls() {
   document.getElementById('export-all-top').addEventListener('click', exportAll);
 }
 
-/** Applies a screenshot scene: samples in, layout/grade/caption/size set, paint. */
+// Applies a screenshot scene: samples in, layout/grade/caption/size set, paint.
 async function applyShotScene(scene) {
   await loadSamplePhotos();
   if (scene.layout) state.layoutId = scene.layout;
@@ -599,6 +665,12 @@ async function applyShotScene(scene) {
   if (scene.subtitle) {
     state.subtitle = scene.subtitle;
     document.getElementById('subtitle-input').value = scene.subtitle;
+  }
+  if (scene.coverline) {
+    state.coverline = scene.coverline;
+    state.coverlineOn = true;
+    document.getElementById('coverline-input').value = scene.coverline;
+    document.getElementById('coverline-toggle').checked = true;
   }
   if (scene.size) {
     state.sizeId = scene.size;
